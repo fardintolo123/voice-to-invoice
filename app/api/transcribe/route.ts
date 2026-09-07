@@ -34,7 +34,10 @@ export async function POST(request: Request) {
       });
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 502 });
+      return Response.json(
+        { error: formatDeepgramError(error.message) },
+        { status: 502 },
+      );
     }
 
     const transcript =
@@ -63,9 +66,29 @@ export async function POST(request: Request) {
     return Response.json(
       {
         error:
-          error instanceof Error ? error.message : "Transcription failed.",
+          error instanceof Error
+            ? formatDeepgramError(error.message)
+            : "Transcription failed.",
       },
       { status: 500 },
     );
+  }
+}
+
+function formatDeepgramError(message: string) {
+  try {
+    const parsed = JSON.parse(message) as {
+      err_code?: string;
+      err_msg?: string;
+      error?: string;
+    };
+
+    if (parsed.err_code === "INVALID_AUTH") {
+      return "Deepgram rejected the API key. Check DEEPGRAM_API_KEY in .env.local, then restart the dev server.";
+    }
+
+    return parsed.err_msg ?? parsed.error ?? message;
+  } catch {
+    return message;
   }
 }
