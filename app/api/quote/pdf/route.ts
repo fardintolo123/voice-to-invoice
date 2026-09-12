@@ -6,6 +6,7 @@ import { markPdfGenerated } from "@/lib/db";
 import { pdfQuoteRequestSchema } from "@/lib/quote-schema";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -15,10 +16,18 @@ export async function POST(request: Request) {
     const hardened = await normalizePdf(rendered, quote.quoteNumber);
     const responseBody = new ArrayBuffer(hardened.byteLength);
     new Uint8Array(responseBody).set(hardened);
-    await markPdfGenerated(quote.quoteNumber);
+    await tryMarkPdfGenerated(quote.quoteNumber);
     return new Response(responseBody, { headers: { "Content-Disposition": `attachment; filename="${quote.quoteNumber}.pdf"`, "Content-Type": "application/pdf" } });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "PDF generation failed." }, { status: 400 });
+  }
+}
+
+async function tryMarkPdfGenerated(quoteNumber: string) {
+  try {
+    await markPdfGenerated(quoteNumber);
+  } catch (error) {
+    console.error("PDF generated marker failed", error);
   }
 }
 

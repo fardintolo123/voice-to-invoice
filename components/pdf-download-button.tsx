@@ -27,7 +27,7 @@ export function PdfDownloadButton({ quote }: PdfDownloadButtonProps) {
       });
 
       if (!response.ok) {
-        const payload = (await response.json()) as { error?: string };
+        const payload = await readPdfResponse(response);
         throw new Error(payload.error ?? "Could not generate PDF.");
       }
 
@@ -64,4 +64,19 @@ export function PdfDownloadButton({ quote }: PdfDownloadButtonProps) {
       {error ? <p className="text-sm text-[#842d26]">{error}</p> : null}
     </div>
   );
+}
+
+async function readPdfResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as { error?: string };
+  }
+
+  const text = await response.text();
+  return {
+    error: text.trim()
+      ? `PDF generation failed with status ${response.status}: ${text.slice(0, 180)}`
+      : `PDF generation failed with status ${response.status}.`,
+  };
 }
