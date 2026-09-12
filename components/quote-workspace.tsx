@@ -60,6 +60,11 @@ export function QuoteWorkspace() {
   }
 
   async function extractQuote() {
+    if (transcript.trim().split(/\s+/).length < 4) {
+      setError("Add a few quote details first, such as the client, job, item, quantity, or price.");
+      return;
+    }
+
     setIsExtracting(true);
     setError(null);
 
@@ -71,14 +76,12 @@ export function QuoteWorkspace() {
         },
         body: JSON.stringify({ transcript, draftId }),
       });
-      const payload = (await response.json()) as {
-        quote?: Quote;
-        draftId?: string;
-        error?: string;
-      };
+      const payload = await readExtractResponse(response);
 
       if (!response.ok || !payload.quote) {
-        throw new Error(payload.error ?? "Could not extract quote.");
+        throw new Error(
+          payload.error ?? `Quote extraction failed with status ${response.status}.`,
+        );
       }
 
       setQuote(payload.quote);
@@ -151,4 +154,23 @@ export function QuoteWorkspace() {
       </section>
     </div>
   );
+}
+
+async function readExtractResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as {
+      quote?: Quote;
+      draftId?: string;
+      error?: string;
+    };
+  }
+
+  const text = await response.text();
+  return {
+    error: text.trim()
+      ? `Quote extraction failed with status ${response.status}: ${text.slice(0, 180)}`
+      : `Quote extraction failed with status ${response.status}.`,
+  };
 }

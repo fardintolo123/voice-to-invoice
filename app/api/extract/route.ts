@@ -1,8 +1,9 @@
 import OpenAI from "openai";
-import { buildQuoteFromExtracted, createDraftFromExtractedQuote, getDraft, updateDraftQuote } from "@/lib/db";
-import { extractedQuoteSchema, extractRequestSchema } from "@/lib/quote-schema";
+import { createDraftFromExtractedQuote, getDraft, updateDraftQuote } from "@/lib/db";
+import { extractedQuoteSchema, extractRequestSchema, type ExtractedQuote, type Quote } from "@/lib/quote-schema";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const extractionSystemPrompt = `You extract clean quote data from messy trade/service voice transcripts.
 Return only a JSON object matching this exact shape:
@@ -39,16 +40,90 @@ export async function POST(request: Request) {
     if (!content) return Response.json({ error: "DeepSeek returned an empty response." }, { status: 502 });
 
     const extracted = extractedQuoteSchema.parse(JSON.parse(content));
-    const existingDraft = body.draftId ? await getDraft(body.draftId) : null;
-    const quote = await buildQuoteFromExtracted(extracted, existingDraft?.quoteNumber);
+    const existingDraft = body.draftId ? await tryGetDraft(body.draftId) : null;
+    const quote = buildQuoteFromExtracted(extracted, existingDraft?.quoteNumber);
     let draftId = body.draftId;
-    if (draftId && existingDraft) await updateDraftQuote(draftId, quote);
+    if (draftId && existingDraft) await tryUpdateDraftQuote(draftId, quote);
     else {
-      const draft = await createDraftFromExtractedQuote(body.transcript, quote);
-      draftId = draft.id;
+      const draft = await tryCreateDraftFromExtractedQuote(body.transcript, quote);
+      draftId = draft?.id;
     }
     return Response.json({ quote, draftId });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Quote extraction failed." }, { status: 400 });
+    return Response.json({ error: formatExtractionError(error) }, { status: 400 });
+  }
+}
+
+function buildQuoteFromExtracted(extracted: ExtractedQuote, quoteNumber?: string): Quote {
+  const issueDate = new Date().toISOString().slice(0, 10);
+  return {
+    ...extracted,
+    quoteNumber: quoteNumber ?? fallbackQuoteNumber(),
+    issueDate,
+    validUntil: addDays(issueDate, 30),
+    includeVat: true,
+    vatRate: 20,
+  };
+}
+
+async function tryGetDraft(id: string) {
+  try {
+    return await getDraft(id);
+  } catch (error) {
+    console.error("Draft lookup failed", error);
+    return null;
+  }
+}
+
+async function tryUpdateDraftQuote(id: string, quote: Quote) {
+  try {
+    return await updateDraftQuote(id, quote);
+  } catch (error) {
+    console.error("Draft quote update failed", error);
+    return false;
+  }
+}
+
+async function tryCreateDraftFromExtractedQuote(transcript: string, quote: Quote) {
+  try {
+    return await createDraftFromExtractedQuote(transcript, quote);
+  } catch (error) {
+    console.error("Extracted quote draft save failed", error);
+    return null;
+  }
+}
+
+function fallbackQuoteNumber() {
+  const now = new Date();
+  const stamp = [
+    now.getUTCFullYear(),
+    String(now.getUTCMonth() + 1).padStart(2, "0"),
+    String(now.getUTCDate()).padStart(2, "0"),
+    String(now.getUTCHours()).padStart(2, "0"),
+    String(now.getUTCMinutes()).padStart(2, "0"),
+    String(now.getUTCSeconds()).padStart(2, "0"),
+  ].join("");
+  return `PLQ-${stamp}`;
+}
+
+function addDays(dateValue: string, days: number) {
+  const date = new Date(`${dateValue}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function formatExtractionError(error: unknown) {
+  if (!(error instanceof Error)) return "Quote extraction failed.";
+
+  const message = error.message;
+  if (/connection error/i.test(message)) {
+    return "Could not connect to DeepSeek. Check the server network connection and DEEPSEEK_API_KEY, then try again.";
+  }
+
+  try {
+    const parsed = JSON.parse(message) as { error?: { message?: string }; message?: string };
+    return parsed.error?.message ?? parsed.message ?? message;
+  } catch {
+    return message;
   }
 }
