@@ -10,30 +10,15 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     const { quote } = pdfQuoteRequestSchema.parse(await request.json());
-    const documentElement = createElement(QuotePdfDocument, {
-      quote,
-    }) as Parameters<typeof renderToBuffer>[0];
+    const documentElement = createElement(QuotePdfDocument, { quote }) as Parameters<typeof renderToBuffer>[0];
     const rendered = await renderToBuffer(documentElement);
     const hardened = await normalizePdf(rendered, quote.quoteNumber);
     const responseBody = new ArrayBuffer(hardened.byteLength);
     new Uint8Array(responseBody).set(hardened);
-
-    markPdfGenerated(quote.quoteNumber);
-
-    return new Response(responseBody, {
-      headers: {
-        "Content-Disposition": `attachment; filename="${quote.quoteNumber}.pdf"`,
-        "Content-Type": "application/pdf",
-      },
-    });
+    await markPdfGenerated(quote.quoteNumber);
+    return new Response(responseBody, { headers: { "Content-Disposition": `attachment; filename="${quote.quoteNumber}.pdf"`, "Content-Type": "application/pdf" } });
   } catch (error) {
-    return Response.json(
-      {
-        error:
-          error instanceof Error ? error.message : "PDF generation failed.",
-      },
-      { status: 400 },
-    );
+    return Response.json({ error: error instanceof Error ? error.message : "PDF generation failed." }, { status: 400 });
   }
 }
 

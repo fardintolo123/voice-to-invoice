@@ -1,0 +1,17 @@
+
+> plainlaunch-quotes@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.2.0.2:3000
+- Environments: .env.local
+✓ Ready in 17.9s
+✓ Running next.config.ts took 1848ms
+⚠ Slow filesystem detected. The benchmark took 324ms. If \\?\D:\1\voice to invoice\.next\dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+
+ POST /api/transcribe 400 in 4.2s (next.js: 3.8s, application-code: 458ms)
+ GET / 200 in 372ms (next.js: 165ms, application-code: 207ms)
+ POST /api/transcribe 200 in 3.0s (next.js: 11ms, application-code: 2.9s)
+^C^C

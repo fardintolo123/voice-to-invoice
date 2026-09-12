@@ -1,14 +1,6 @@
 import OpenAI from "openai";
-import {
-  buildQuoteFromExtracted,
-  createDraftFromExtractedQuote,
-  getDraft,
-  updateDraftQuote,
-} from "@/lib/db";
-import {
-  extractedQuoteSchema,
-  extractRequestSchema,
-} from "@/lib/quote-schema";
+import { buildQuoteFromExtracted, createDraftFromExtractedQuote, getDraft, updateDraftQuote } from "@/lib/db";
+import { extractedQuoteSchema, extractRequestSchema } from "@/lib/quote-schema";
 
 export const runtime = "nodejs";
 
@@ -18,9 +10,7 @@ Return only a JSON object matching this exact shape:
   "clientName": "string",
   "clientEmail": "string",
   "clientAddress": "string",
-  "lineItems": [
-    { "description": "string", "quantity": number, "unitPrice": number }
-  ],
+  "lineItems": [{ "description": "string", "quantity": number, "unitPrice": number }],
   "notes": "string"
 }
 
@@ -37,64 +27,28 @@ Rules:
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.DEEPSEEK_API_KEY;
-
-    if (!apiKey) {
-      return Response.json(
-        { error: "DeepSeek API key is not configured." },
-        { status: 500 },
-      );
-    }
+    if (!apiKey) return Response.json({ error: "DeepSeek API key is not configured." }, { status: 500 });
 
     const body = extractRequestSchema.parse(await request.json());
-    const openai = new OpenAI({
-      baseURL: "https://api.deepseek.com",
-      apiKey,
-    });
-
+    const openai = new OpenAI({ baseURL: "https://api.deepseek.com", apiKey });
     const completion = await openai.chat.completions.create({
-      model: "deepseek-chat",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: extractionSystemPrompt },
-        {
-          role: "user",
-          content: `Transcript:\n${body.transcript}`,
-        },
-      ],
+      model: "deepseek-chat", response_format: { type: "json_object" },
+      messages: [{ role: "system", content: extractionSystemPrompt }, { role: "user", content: `Transcript:\n${body.transcript}` }],
     });
-
     const content = completion.choices[0]?.message?.content;
-
-    if (!content) {
-      return Response.json(
-        { error: "DeepSeek returned an empty response." },
-        { status: 502 },
-      );
-    }
+    if (!content) return Response.json({ error: "DeepSeek returned an empty response." }, { status: 502 });
 
     const extracted = extractedQuoteSchema.parse(JSON.parse(content));
-    const existingDraft = body.draftId ? getDraft(body.draftId) : null;
-    const quote = buildQuoteFromExtracted(
-      extracted,
-      existingDraft?.quoteNumber,
-    );
-
+    const existingDraft = body.draftId ? await getDraft(body.draftId) : null;
+    const quote = await buildQuoteFromExtracted(extracted, existingDraft?.quoteNumber);
     let draftId = body.draftId;
-    if (draftId && existingDraft) {
-      updateDraftQuote(draftId, quote);
-    } else {
-      const draft = createDraftFromExtractedQuote(body.transcript, quote);
+    if (draftId && existingDraft) await updateDraftQuote(draftId, quote);
+    else {
+      const draft = await createDraftFromExtractedQuote(body.transcript, quote);
       draftId = draft.id;
     }
-
     return Response.json({ quote, draftId });
   } catch (error) {
-    return Response.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Quote extraction failed.",
-      },
-      { status: 400 },
-    );
+    return Response.json({ error: error instanceof Error ? error.message : "Quote extraction failed." }, { status: 400 });
   }
 }
