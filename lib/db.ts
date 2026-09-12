@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { buildQuoteFromExtracted as buildProfileQuoteFromExtracted } from "@/lib/quote-defaults";
 import type { ExtractedQuote, Quote } from "@/lib/quote-schema";
 
 type DraftRow = {
@@ -48,8 +49,7 @@ export async function markPdfGenerated(quoteNumber: string) {
 }
 
 export async function buildQuoteFromExtracted(extracted: ExtractedQuote, quoteNumber?: string): Promise<Quote> {
-  const issueDate = new Date().toISOString().slice(0, 10);
-  return { ...extracted, quoteNumber: quoteNumber ?? (await nextQuoteNumber(getSupabase())), issueDate, validUntil: addDays(issueDate, 30), includeVat: true, vatRate: 20 };
+  return buildProfileQuoteFromExtracted(extracted, "quote", quoteNumber ?? (await nextQuoteNumber(getSupabase())));
 }
 
 export async function getDraft(id: string): Promise<QuoteDraft | null> {
@@ -77,8 +77,3 @@ async function nextQuoteNumber(client: SupabaseClient) {
   return `PLQ-${year}-${String(nextNumber).padStart(4, "0")}`;
 }
 
-function addDays(dateValue: string, days: number) {
-  const date = new Date(`${dateValue}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}

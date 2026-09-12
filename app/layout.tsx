@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PlainLaunch Quotes",
-  description: "Voice-to-invoice and quote workflow for small service businesses.",
+  title: "4 Elements Document Builder",
+  description: "Voice-to-quote and invoice workflow for 4 Elements Painting.",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-GB">
+    <html lang="en-AU">
       <body>{children}</body>
     </html>
   );

@@ -100,8 +100,17 @@ function fromMinorUnits(value: number) {
 }
 
 export function formatGbp(value: number) {
-  return new Intl.NumberFormat("en-GB", {
+  return formatCurrency(value, "GBP", "en-GB");
+}
+
+export function formatCurrency(value: number, currency = "AUD", locale = "en-AU") {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "GBP",
+    currency,
+    maximumFractionDigits: Number.isInteger(value) ? 0 : 2,
   }).format(value);
+}
+
+export function formatAud(value: number) {
+  return formatCurrency(value, "AUD", "en-AU");
 }

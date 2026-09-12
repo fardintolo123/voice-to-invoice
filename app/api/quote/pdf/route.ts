@@ -2,6 +2,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { PDFDocument } from "pdf-lib";
 import { createElement } from "react";
 import { QuotePdfDocument } from "@/components/quote-pdf-document";
+import { getBusinessProfile } from "@/lib/business-profile";
 import { markPdfGenerated } from "@/lib/db";
 import { pdfQuoteRequestSchema } from "@/lib/quote-schema";
 
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
     const { quote } = pdfQuoteRequestSchema.parse(await request.json());
     const documentElement = createElement(QuotePdfDocument, { quote }) as Parameters<typeof renderToBuffer>[0];
     const rendered = await renderToBuffer(documentElement);
-    const hardened = await normalizePdf(rendered, quote.quoteNumber);
+    const hardened = await normalizePdf(rendered, quote);
     const responseBody = new ArrayBuffer(hardened.byteLength);
     new Uint8Array(responseBody).set(hardened);
     await tryMarkPdfGenerated(quote.quoteNumber);
@@ -31,15 +32,16 @@ async function tryMarkPdfGenerated(quoteNumber: string) {
   }
 }
 
-async function normalizePdf(source: Buffer, quoteNumber: string) {
+async function normalizePdf(source: Buffer, quote: { businessId: string; quoteNumber: string }) {
   try {
+    const profile = getBusinessProfile(quote.businessId);
     const document = await PDFDocument.load(source);
-    document.setTitle(`Quote ${quoteNumber}`);
-    document.setAuthor("PlainLaunch Quotes");
-    document.setCreator("PlainLaunch Quotes");
-    document.setProducer("PlainLaunch Quotes");
-    document.setSubject("Draft quote");
-    document.setKeywords(["quote", "invoice", "plainlaunch"]);
+    document.setTitle(`4 Elements document ${quote.quoteNumber}`);
+    document.setAuthor(profile.name);
+    document.setCreator(profile.name);
+    document.setProducer(profile.name);
+    document.setSubject("Quote or invoice");
+    document.setKeywords([profile.name, "quote", "invoice", "painting"]);
     return await document.save({ useObjectStreams: true });
   } catch {
     return new Uint8Array(source);

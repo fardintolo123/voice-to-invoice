@@ -7,37 +7,22 @@ import { QuoteForm } from "@/components/quote-form";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { VoiceRecorder } from "@/components/voice-recorder";
-import type { Quote } from "@/lib/quote-schema";
+import { documentTypeLabel, fallbackDocumentNumber } from "@/lib/business-profile";
+import { createSampleQuote } from "@/lib/quote-defaults";
+import type { DocumentType, Quote } from "@/lib/quote-schema";
+import { cn } from "@/lib/utils";
 
 const sampleTranscript =
-  "Create a quote for Sarah Ahmed at 18 King Street, Manchester M2 4LG. Her email is sarah@example.com. Add a boiler service and safety inspection for 1 at 120 pounds, and a replacement expansion vessel for 1 at 84 pounds 50. Notes: work can be completed next Tuesday morning.";
+  "Create a quote for Eric Chong at 15 Yarrabung Ave, Thornleigh NSW 2120. Phone 0403 019 717, email ews_chong@yahoo.com.au. Job is external eaves and brick painting. Supply all materials, treat mould affected areas, prime where required, and apply two premium exterior top coats. Total is 13500 dollars GST inclusive. Valid for 14 days.";
 
-const sampleQuote: Quote = {
-  quoteNumber: "PLQ-2026-0001",
-  issueDate: "2026-08-31",
-  validUntil: "2026-09-30",
-  clientName: "Sarah Ahmed",
-  clientEmail: "sarah@example.com",
-  clientAddress: "18 King Street\nManchester M2 4LG",
-  lineItems: [
-    {
-      description: "Boiler service and safety inspection",
-      quantity: 1,
-      unitPrice: 120,
-    },
-    {
-      description: "Replacement expansion vessel",
-      quantity: 1,
-      unitPrice: 84.5,
-    },
-  ],
-  notes: "Work can be completed next Tuesday morning.",
-  includeVat: true,
-  vatRate: 20,
-};
+const documentTypes: DocumentType[] = [
+  "quote",
+  "deposit-invoice",
+  "final-invoice",
+];
 
 export function QuoteWorkspace() {
-  const [quote, setQuote] = useState<Quote>(sampleQuote);
+  const [quote, setQuote] = useState<Quote>(() => createSampleQuote());
   const [transcript, setTranscript] = useState(sampleTranscript);
   const [draftId, setDraftId] = useState<string | undefined>();
   const [status, setStatus] = useState<string>("Ready");
@@ -53,10 +38,31 @@ export function QuoteWorkspace() {
     setDraftId(nextDraftId);
     setStatus(
       quoteNumber
-        ? `Transcript saved as ${quoteNumber}`
+        ? `Transcript captured as ${quoteNumber}`
         : "Transcript captured",
     );
     setError(null);
+  }
+
+  function changeDocumentType(documentType: DocumentType) {
+    setQuote((current) => ({
+      ...current,
+      documentType,
+      quoteNumber: current.documentType === documentType
+        ? current.quoteNumber
+        : fallbackDocumentNumber(documentType),
+      lineItems: current.lineItems.map((item, index) =>
+        index === 0
+          ? { ...item, description: defaultLineItemLabel(documentType) }
+          : item,
+      ),
+      photos: current.photos.map((photo) => ({
+        ...photo,
+        section: documentType === "quote" ? "site" : "project",
+      })),
+    }));
+    setDraftId(undefined);
+    setStatus(`${documentTypeLabel(documentType)} selected`);
   }
 
   async function extractQuote() {
@@ -74,19 +80,29 @@ export function QuoteWorkspace() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ transcript, draftId }),
+        body: JSON.stringify({
+          transcript,
+          draftId,
+          businessId: quote.businessId,
+          documentType: quote.documentType,
+        }),
       });
       const payload = await readExtractResponse(response);
 
-      if (!response.ok || !payload.quote) {
+      const extractedQuote = payload.quote;
+
+      if (!response.ok || !extractedQuote) {
         throw new Error(
           payload.error ?? `Quote extraction failed with status ${response.status}.`,
         );
       }
 
-      setQuote(payload.quote);
+      setQuote((current) => ({
+        ...extractedQuote,
+        photos: current.photos,
+      }));
       setDraftId(payload.draftId ?? draftId);
-      setStatus("Quote extracted and validated");
+      setStatus(`${documentTypeLabel(quote.documentType)} extracted and validated`);
     } catch (extractError) {
       setError(
         extractError instanceof Error
@@ -99,9 +115,36 @@ export function QuoteWorkspace() {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[24rem_1fr]">
+    <div className="grid gap-5 lg:grid-cols-[25rem_1fr]">
       <aside className="grid h-fit gap-4">
+        <section className="grid gap-3 rounded-lg border border-[var(--border)] bg-white p-4">
+          <div>
+            <h2 className="text-lg font-semibold">Document</h2>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Pick the customer-ready output before extraction.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {documentTypes.map((documentType) => (
+              <button
+                className={cn(
+                  "min-h-12 rounded-md border px-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]",
+                  quote.documentType === documentType
+                    ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                    : "border-[var(--border)] bg-white text-[var(--foreground)] hover:bg-[var(--muted)]",
+                )}
+                key={documentType}
+                onClick={() => changeDocumentType(documentType)}
+                type="button"
+              >
+                {shortDocumentLabel(documentType)}
+              </button>
+            ))}
+          </div>
+        </section>
+
         <VoiceRecorder onTranscript={handleTranscript} />
+
         <section className="grid gap-3 rounded-lg border border-[var(--border)] bg-white p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -123,7 +166,7 @@ export function QuoteWorkspace() {
             ) : (
               <Bot className="h-4 w-4" />
             )}
-            Extract quote
+            Extract {quote.documentType === "quote" ? "quote" : "invoice"}
           </Button>
           {error ? (
             <p className="rounded-md border border-[#d78b86] bg-[#fff1ef] px-3 py-2 text-sm text-[#842d26]">
@@ -138,14 +181,14 @@ export function QuoteWorkspace() {
       </aside>
 
       <section className="grid gap-4">
-        <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[#143d40] p-4 text-white sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-lg border border-[#174b4f] bg-[#143d40] p-4 text-white sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-[#e7b15f]">
               <Sparkles className="h-4 w-4" />
-              Validated quote workspace
+              4 Elements Painting workspace
             </div>
             <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
-              PlainLaunch Quotes
+              {documentTypeLabel(quote.documentType)}
             </h1>
           </div>
           <PdfDownloadButton quote={quote} />
@@ -154,6 +197,28 @@ export function QuoteWorkspace() {
       </section>
     </div>
   );
+}
+
+function shortDocumentLabel(documentType: DocumentType) {
+  switch (documentType) {
+    case "deposit-invoice":
+      return "Deposit";
+    case "final-invoice":
+      return "Final";
+    default:
+      return "Quote";
+  }
+}
+
+function defaultLineItemLabel(documentType: DocumentType) {
+  switch (documentType) {
+    case "deposit-invoice":
+      return "20% Deposit";
+    case "final-invoice":
+      return "Final Invoice";
+    default:
+      return "Painting works";
+  }
 }
 
 async function readExtractResponse(response: Response) {

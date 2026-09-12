@@ -35,7 +35,7 @@ export function PdfDownloadButton({ quote }: PdfDownloadButtonProps) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${quote.quoteNumber || "quote"}.pdf`;
+      link.download = `${quote.quoteNumber || "4elements-document"}.pdf`;
       document.body.append(link);
       link.click();
       link.remove();
