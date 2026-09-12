@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   Document,
   Image,
@@ -7,178 +9,243 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { getBusinessProfile } from "@/lib/business-profile";
-import { calculateQuoteTotals, formatCurrency } from "@/lib/calculations";
+import { calculateQuoteTotals } from "@/lib/calculations";
 import type { DocumentType, Quote } from "@/lib/quote-schema";
 
 type QuotePdfDocumentProps = {
   quote: Quote;
 };
 
-const colors = {
-  ink: "#111827",
-  muted: "#5f665f",
-  line: "#d8ded6",
-  green: "#1f5d43",
-  pale: "#eef4ec",
-  gold: "#c69335",
-};
+const red = "#e01a24";
 
 const styles = StyleSheet.create({
   page: {
-    padding: 34,
+    paddingTop: 28,
+    paddingHorizontal: 13,
+    paddingBottom: 18,
     fontFamily: "Helvetica",
-    color: colors.ink,
+    color: "#111111",
     backgroundColor: "#ffffff",
   },
   header: {
+    minHeight: 88,
     flexDirection: "row",
     justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    paddingBottom: 14,
-    marginBottom: 16,
+    alignItems: "flex-start",
+    paddingHorizontal: 14,
   },
-  brand: {
-    fontSize: 22,
+  brandLockup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  logo: {
+    width: 54,
+    height: 54,
+    objectFit: "contain",
+  },
+  brandWords: {
+    width: 150,
+  },
+  brandName: {
+    fontSize: 21,
     fontWeight: 700,
-    color: colors.green,
+    lineHeight: 0.92,
   },
-  titleBlock: {
+  brandSuffix: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: 700,
+    color: red,
+    textAlign: "center",
+  },
+  documentMeta: {
+    width: 220,
     alignItems: "flex-end",
   },
-  title: {
-    fontSize: 24,
+  documentTitle: {
+    fontSize: 27,
     fontWeight: 700,
-    color: colors.ink,
+    marginBottom: 12,
+    textAlign: "right",
+    color: red,
   },
-  bodyText: {
-    fontSize: 9,
-    lineHeight: 1.45,
+  metaRow: {
+    width: 168,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
   },
-  muted: {
-    color: colors.muted,
+  metaText: {
+    fontSize: 8,
+    lineHeight: 1.35,
+  },
+  redBar: {
+    height: 20,
+    marginBottom: 20,
+    backgroundColor: red,
   },
   section: {
     marginBottom: 12,
   },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    marginBottom: 4,
+    textTransform: "uppercase",
+    color: red,
+  },
+  bodyText: {
+    fontSize: 8.4,
+    lineHeight: 1.16,
+  },
+  bodyBlock: {
+    fontSize: 12,
+    lineHeight: 1.16,
+    marginTop: 15,
+  },
+  bold: {
+    fontWeight: 700,
+  },
   twoColumn: {
     flexDirection: "row",
-    gap: 18,
+    gap: 16,
+    paddingHorizontal: 8,
   },
   column: {
     flex: 1,
   },
-  sectionTitle: {
-    fontSize: 8,
-    fontWeight: 700,
-    color: colors.green,
-    marginBottom: 5,
-    textTransform: "uppercase",
+  preparedPanel: {
+    width: 306,
+    padding: 8,
+    backgroundColor: "#efefef",
+  },
+  jobSection: {
+    flex: 1,
   },
   jobTitle: {
     fontSize: 12,
     fontWeight: 700,
     marginBottom: 6,
   },
-  totalPanel: {
-    alignSelf: "flex-end",
-    width: 210,
-    marginVertical: 8,
-    padding: 12,
-    backgroundColor: colors.pale,
-    borderLeftWidth: 0,
+  moneyBlock: {
+    alignSelf: "flex-start",
+    width: 282,
+    marginTop: 22,
+    marginLeft: 18,
+    borderWidth: 1,
+    borderColor: "#111111",
   },
-  totalLabel: {
+  moneyTitle: {
+    paddingVertical: 7,
     fontSize: 10,
     fontWeight: 700,
-    color: colors.green,
     textAlign: "center",
-    marginBottom: 6,
+    textTransform: "uppercase",
+    color: "#ffffff",
+    backgroundColor: "#0f1d26",
   },
-  totalValue: {
-    fontSize: 22,
-    fontWeight: 700,
+  moneyValue: {
+    paddingTop: 18,
+    fontSize: 12,
     textAlign: "center",
   },
-  taxNote: {
-    marginTop: 4,
-    fontSize: 8,
-    color: colors.muted,
+  taxText: {
+    paddingBottom: 17,
+    fontSize: 10,
     textAlign: "center",
+    marginTop: 3,
   },
   table: {
-    borderWidth: 1,
-    borderColor: colors.line,
+    width: "100%",
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: colors.green,
-    color: "#ffffff",
-    fontSize: 8,
-    fontWeight: 700,
+    backgroundColor: "#5d5d5d",
   },
   tableRow: {
+    minHeight: 29,
     flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    fontSize: 8.5,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#cfcfcf",
   },
-  cell: {
-    padding: 6,
+  tableText: {
+    padding: 5,
+    fontSize: 7.6,
+    lineHeight: 1.2,
   },
   descriptionCell: {
     flex: 1,
   },
-  smallCell: {
-    width: 54,
+  stepCell: {
+    width: 45,
+    textAlign: "center",
+  },
+  processCell: {
+    width: 115,
+  },
+  daysCell: {
+    width: 82,
+    textAlign: "center",
+  },
+  qtyCell: {
+    width: 48,
+    textAlign: "right",
+  },
+  rateCell: {
+    width: 84,
     textAlign: "right",
   },
   amountCell: {
-    width: 74,
+    width: 86,
     textAlign: "right",
   },
-  bullet: {
-    flexDirection: "row",
-    gap: 5,
-    marginBottom: 3,
-  },
-  bulletMark: {
-    width: 6,
-    color: colors.gold,
+  note: {
+    fontSize: 6.8,
+    lineHeight: 1.35,
+    marginTop: 2,
+    fontWeight: 700,
   },
   photoGrid: {
+    minHeight: 150,
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    gap: 0,
+    paddingHorizontal: 24,
   },
   photoItem: {
-    width: "31.6%",
+    width: "33.33%",
+    paddingHorizontal: 10,
   },
   photo: {
     width: "100%",
-    height: 76,
+    height: 142,
     objectFit: "cover",
+  },
+  photoPlaceholder: {
+    width: "33.33%",
+    height: 142,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: "#d7d7d7",
   },
   caption: {
-    marginTop: 3,
     fontSize: 7,
-    color: colors.muted,
+    lineHeight: 1.2,
+    marginTop: 2,
+    color: "#444444",
   },
-  footer: {
-    position: "absolute",
-    left: 34,
-    right: 34,
-    bottom: 22,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    paddingTop: 7,
-    fontSize: 7.5,
-    color: colors.muted,
-    textAlign: "center",
+  bulletRow: {
+    flexDirection: "row",
+    marginBottom: 1,
+  },
+  bulletMark: {
+    width: 6,
+    fontSize: 7,
   },
 });
+
+let cachedLogo: string | null = null;
 
 export function QuotePdfDocument({ quote }: QuotePdfDocumentProps) {
   const profile = getBusinessProfile(quote.businessId);
@@ -204,95 +271,78 @@ export function QuotePdfDocument({ quote }: QuotePdfDocumentProps) {
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>{profile.name}</Text>
-            <Text style={[styles.bodyText, styles.muted]}>{profile.email}</Text>
-            <Text style={[styles.bodyText, styles.muted]}>{profile.phone}</Text>
+          <View style={styles.brandLockup}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={getLogoDataUri()} style={styles.logo} />
+            <View style={styles.brandWords}>
+              <Text style={styles.brandName}>4ELEMENTS</Text>
+              <Text style={styles.brandName}>PAINTING</Text>
+              <Text style={styles.brandSuffix}>PTY LTD</Text>
+            </View>
           </View>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.bodyText}>
-              {isQuote ? "Quote No:" : "Invoice No:"} {quote.quoteNumber}
-            </Text>
-            <Text style={styles.bodyText}>
-              {isQuote ? "Date:" : "Invoice Date:"} {formatDate(quote.issueDate)}
-            </Text>
-            <Text style={styles.bodyText}>
-              {isQuote ? "Valid Until:" : "Due Date:"}{" "}
-              {formatDate(isQuote ? quote.validUntil : quote.dueDate)}
-            </Text>
+          <View style={styles.documentMeta}>
+            <Text style={styles.documentTitle}>{title}</Text>
+            <MetaRow label={isQuote ? "Quote No:" : "Invoice No:"} value={quote.quoteNumber} />
+            <MetaRow label={isQuote ? "Date:" : "Invoice Date:"} value={formatDate(quote.issueDate)} />
+            <MetaRow label={isQuote ? "Valid Until:" : "Due Date:"} value={formatDate(isQuote ? quote.validUntil : quote.dueDate)} />
           </View>
         </View>
+
+        <View style={styles.redBar} />
 
         <View style={[styles.section, styles.twoColumn]}>
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>Client</Text>
-            <Text style={styles.bodyText}>Client Name: {quote.clientName || "Client"}</Text>
-            <Text style={styles.bodyText}>Client Address: {quote.clientAddress}</Text>
-            {quote.clientPhone ? <Text style={styles.bodyText}>Phone: {quote.clientPhone}</Text> : null}
-            {quote.clientEmail ? <Text style={styles.bodyText}>Email: {quote.clientEmail}</Text> : null}
-          </View>
-          <View style={styles.column}>
-            <Text style={styles.sectionTitle}>Prepared By</Text>
-            <Text style={styles.bodyText}>{profile.name}</Text>
-            {isQuote ? <Text style={styles.bodyText}>Address: {profile.address}</Text> : null}
-            <Text style={styles.bodyText}>ABN: {profile.abn}</Text>
-            <Text style={styles.bodyText}>Phone: {profile.phone}</Text>
-            <Text style={styles.bodyText}>Email: {profile.email}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Job Description</Text>
-          <Text style={styles.jobTitle}>{quote.jobTitle || "Painting works"}</Text>
-          {quote.scope ? <Text style={styles.bodyText}>{quote.scope}</Text> : null}
-        </View>
-
-        <View style={styles.totalPanel}>
-          <Text style={styles.totalLabel}>{summaryLabel(quote.documentType)}</Text>
-          <Text style={styles.totalValue}>
-            {formatCurrency(totals.grandTotal, quote.currency, quote.locale)}
-          </Text>
-          <Text style={styles.taxNote}>({quote.taxLabel} Inclusive)</Text>
-        </View>
-
-        {!isQuote ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Payment Summary</Text>
-            <PaymentTable quote={quote} />
-            <Text style={[styles.bodyText, styles.muted]}>
-              Note: This invoice confirms {quote.documentType === "deposit-invoice" ? "booking" : "completion"} of the listed work process and agreed project scope.
+            <Text style={[styles.bodyText, { fontSize: 14, fontWeight: 700 }]}>
+              Client Name: {quote.clientName || "Client"}
             </Text>
+            <Text style={[styles.bodyText, styles.bold]}>Client Address: {quote.clientAddress}</Text>
+            {quote.clientPhone ? <Text style={[styles.bodyText, styles.bold]}>Phone: {quote.clientPhone}</Text> : null}
+            {quote.clientEmail ? <Text style={[styles.bodyText, styles.bold]}>Email: {quote.clientEmail}</Text> : null}
           </View>
-        ) : (
+          <View style={styles.preparedPanel}>
+            <Text style={styles.sectionTitle}>Prepared By</Text>
+            <Text style={[styles.bodyText, { fontSize: 12, fontWeight: 700 }]}>{profile.name}</Text>
+            {isQuote ? <Text style={[styles.bodyText, styles.bold]}>Address: {profile.address}</Text> : null}
+            <Text style={[styles.bodyText, styles.bold]}>Phone: {profile.phone}</Text>
+            <Text style={[styles.bodyText, styles.bold]}>Email: {profile.email}</Text>
+            <Text style={[styles.bodyText, styles.bold]}>ABN: {profile.abn.replaceAll(" ", "")}</Text>
+          </View>
+        </View>
+
+        <View style={[styles.section, styles.twoColumn, { paddingHorizontal: 8, alignItems: "flex-start" }]}>
+          <View style={styles.jobSection}>
+            <Text style={styles.sectionTitle}>Job Description</Text>
+            <Text style={styles.jobTitle}>{quote.jobTitle || "Painting Works"}</Text>
+            {quote.scope ? <Text style={styles.bodyBlock}>{quote.scope}</Text> : null}
+          </View>
+          <MoneyBlock
+            documentType={quote.documentType}
+            taxLabel={quote.taxLabel}
+            total={totals.grandTotal}
+          />
+        </View>
+
+        {isQuote ? (
           <WorkProcess quote={quote} />
+        ) : (
+          <PaymentSummary quote={quote} />
         )}
 
-        {photos.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{isQuote ? "Site Photos" : "Project Photos"}</Text>
-            <View style={styles.photoGrid}>
-              {photos.slice(0, 6).map((photo) => (
-                <View key={photo.id} style={styles.photoItem}>
-                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
-                  <Image src={photo.dataUrl} style={styles.photo} />
-                  <Text style={styles.caption}>{photo.caption}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ) : null}
+        <PhotoSection
+          photos={photos}
+          title={isQuote ? "Site Photos" : "Project Photos"}
+        />
 
         {!isQuote ? <PaymentDetails quote={quote} /> : null}
 
-        <View style={[styles.section, styles.twoColumn]}>
+        <View style={[styles.section, styles.twoColumn, { paddingHorizontal: 34 }]}>
           <ListSection items={quote.inclusions} title="Inclusions" />
           {quote.exclusions.length > 0 ? (
             <ListSection items={quote.exclusions} title="Exclusions" />
           ) : null}
+          <ListSection items={quote.terms} title="Terms & Conditions" />
         </View>
-
-        <ListSection items={quote.terms} title="Terms & Conditions" />
 
         {!isQuote ? (
           <View style={styles.section}>
@@ -302,12 +352,35 @@ export function QuotePdfDocument({ quote }: QuotePdfDocumentProps) {
             </Text>
           </View>
         ) : null}
-
-        <Text fixed style={styles.footer}>
-          {profile.name} | ABN {profile.abn} | {profile.phone} | {profile.email}
-        </Text>
       </Page>
     </Document>
+  );
+}
+
+function MetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metaRow}>
+      <Text style={styles.metaText}>{label}</Text>
+      <Text style={styles.metaText}>{value}</Text>
+    </View>
+  );
+}
+
+function MoneyBlock({
+  documentType,
+  taxLabel,
+  total,
+}: {
+  documentType: DocumentType;
+  taxLabel: string;
+  total: number;
+}) {
+  return (
+    <View style={styles.moneyBlock}>
+      <Text style={styles.moneyTitle}>{summaryLabel(documentType)}</Text>
+      <Text style={styles.moneyValue}>$ {formatWholeDollars(total)}</Text>
+      <Text style={styles.taxText}>({taxLabel} Inclusive)</Text>
+    </View>
   );
 }
 
@@ -316,60 +389,89 @@ function WorkProcess({ quote }: { quote: Quote }) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Work Process</Text>
-      <View style={styles.table}>
+      <Text style={[styles.sectionTitle, { paddingLeft: 18 }]}>Work Process</Text>
+      <View style={[styles.table, { marginHorizontal: 18 }]}>
         <View style={styles.tableHeader}>
-          <Text style={[styles.cell, { width: 36 }]}>Step</Text>
-          <Text style={[styles.cell, { width: 96 }]}>Process</Text>
-          <Text style={[styles.cell, styles.descriptionCell]}>Description</Text>
-          <Text style={[styles.cell, { width: 58, textAlign: "right" }]}>Days</Text>
+          <Text style={[styles.tableText, styles.stepCell, styles.bold, { color: "#ffffff" }]}>STEP</Text>
+          <Text style={[styles.tableText, styles.processCell, styles.bold, { color: "#ffffff", textAlign: "center" }]}>PROCESS</Text>
+          <Text style={[styles.tableText, styles.descriptionCell, styles.bold, { color: "#ffffff", textAlign: "center" }]}>DESCRIPTION</Text>
+          <Text style={[styles.tableText, styles.daysCell, styles.bold, { color: "#ffffff" }]}>Estimated working Days</Text>
         </View>
         {quote.workProcess.map((row, index) => (
           <View key={`${row.step}-${index}`} style={styles.tableRow}>
-            <Text style={[styles.cell, { width: 36 }]}>{row.step}</Text>
-            <Text style={[styles.cell, { width: 96 }]}>{row.process}</Text>
-            <Text style={[styles.cell, styles.descriptionCell]}>{row.description}</Text>
-            <Text style={[styles.cell, { width: 58, textAlign: "right" }]}>{row.estimatedDays}</Text>
+            <Text style={[styles.tableText, styles.stepCell, styles.bold, { backgroundColor: red, color: "#ffffff" }]}>{row.step}</Text>
+            <Text style={[styles.tableText, styles.processCell, styles.bold]}>{row.process}</Text>
+            <Text style={[styles.tableText, styles.descriptionCell]}>{row.description}</Text>
+            <Text style={[styles.tableText, styles.daysCell]}>{row.estimatedDays}</Text>
           </View>
         ))}
       </View>
       {quote.notes ? (
-        <Text style={[styles.bodyText, styles.muted, { marginTop: 5 }]}>Note: {quote.notes}</Text>
+        <Text style={[styles.note, { paddingHorizontal: 18 }]}>Note: {quote.notes}</Text>
       ) : null}
     </View>
   );
 }
 
-function PaymentTable({ quote }: { quote: Quote }) {
+function PaymentSummary({ quote }: { quote: Quote }) {
   const totals = calculateQuoteTotals(quote.lineItems, quote.includeVat, quote.vatRate);
 
   return (
-    <View style={styles.table}>
-      <View style={styles.tableHeader}>
-        <Text style={[styles.cell, styles.descriptionCell]}>Description</Text>
-        <Text style={[styles.cell, styles.smallCell]}>Qty</Text>
-        <Text style={[styles.cell, styles.amountCell]}>Rate</Text>
-        <Text style={[styles.cell, styles.amountCell]}>Amount</Text>
-      </View>
-      {totals.lineItems.map((item, index) => (
-        <View key={`${item.description}-${index}`} style={styles.tableRow}>
-          <Text style={[styles.cell, styles.descriptionCell]}>
-            {paymentDescription(quote.documentType, item.description, quote.relatedQuoteNumber)}
-          </Text>
-          <Text style={[styles.cell, styles.smallCell]}>{item.quantity}</Text>
-          <Text style={[styles.cell, styles.amountCell]}>
-            {formatCurrency(item.unitPrice, quote.currency, quote.locale)}
-          </Text>
-          <Text style={[styles.cell, styles.amountCell]}>
-            {formatCurrency(item.lineTotal, quote.currency, quote.locale)}
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { paddingLeft: 18 }]}>Payment Summary</Text>
+      <View style={[styles.table, { marginHorizontal: 18 }]}>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.tableText, styles.descriptionCell, styles.bold, { color: "#ffffff" }]}>DESCRIPTION</Text>
+          <Text style={[styles.tableText, styles.qtyCell, styles.bold, { color: "#ffffff" }]}>QTY</Text>
+          <Text style={[styles.tableText, styles.rateCell, styles.bold, { color: "#ffffff" }]}>RATE</Text>
+          <Text style={[styles.tableText, styles.amountCell, styles.bold, { color: "#ffffff" }]}>AMOUNT</Text>
+        </View>
+        {totals.lineItems.map((item, index) => (
+          <View key={`${item.description}-${index}`} style={styles.tableRow}>
+            <Text style={[styles.tableText, styles.descriptionCell]}>
+              {paymentDescription(quote.documentType, item.description, quote.relatedQuoteNumber)}
+            </Text>
+            <Text style={[styles.tableText, styles.qtyCell]}>{item.quantity}</Text>
+            <Text style={[styles.tableText, styles.rateCell]}>$ {formatWholeDollars(item.unitPrice)}</Text>
+            <Text style={[styles.tableText, styles.amountCell]}>$ {formatWholeDollars(item.lineTotal)}</Text>
+          </View>
+        ))}
+        <View style={styles.tableRow}>
+          <Text style={[styles.tableText, styles.descriptionCell]}>Total balance due</Text>
+          <Text style={[styles.tableText, { width: 218, textAlign: "right", fontWeight: 700 }]}>
+            $ {formatWholeDollars(totals.grandTotal)}
           </Text>
         </View>
-      ))}
-      <View style={styles.tableRow}>
-        <Text style={[styles.cell, styles.descriptionCell]}>Total balance due</Text>
-        <Text style={[styles.cell, { width: 202, textAlign: "right", fontWeight: 700 }]}>
-          {formatCurrency(totals.grandTotal, quote.currency, quote.locale)}
-        </Text>
+      </View>
+      <Text style={[styles.note, { paddingHorizontal: 18 }]}>
+        Note: This invoice confirms {quote.documentType === "deposit-invoice" ? "booking" : "completion"} of the listed work process and agreed project scope.
+      </Text>
+    </View>
+  );
+}
+
+function PhotoSection({
+  photos,
+  title,
+}: {
+  photos: Quote["photos"];
+  title: string;
+}) {
+  return (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { paddingLeft: 18 }]}>{title}</Text>
+      <View style={styles.photoGrid}>
+        {photos.length > 0
+          ? photos.slice(0, 3).map((photo) => (
+              <View key={photo.id} style={styles.photoItem}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                <Image src={photo.dataUrl} style={styles.photo} />
+                {photo.caption ? <Text style={styles.caption}>{photo.caption}</Text> : null}
+              </View>
+            ))
+          : [0, 1, 2].map((index) => (
+              <View key={index} style={styles.photoPlaceholder} />
+            ))}
       </View>
     </View>
   );
@@ -377,11 +479,11 @@ function PaymentTable({ quote }: { quote: Quote }) {
 
 function PaymentDetails({ quote }: { quote: Quote }) {
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, { paddingHorizontal: 18 }]}>
       <Text style={styles.sectionTitle}>Payment Details</Text>
       <Text style={styles.bodyText}>Account Name: {quote.paymentDetails.accountName}</Text>
       <Text style={styles.bodyText}>BSB: {quote.paymentDetails.bsb}</Text>
-      <Text style={styles.bodyText}>Account Number: {quote.paymentDetails.accountNumber}</Text>
+      <Text style={styles.bodyText}>Account Number:{quote.paymentDetails.accountNumber}</Text>
       <Text style={styles.bodyText}>Reference: {quote.paymentDetails.reference}</Text>
     </View>
   );
@@ -394,8 +496,8 @@ function ListSection({ items, title }: { items: string[]; title: string }) {
     <View style={[styles.section, styles.column]}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {items.map((item, index) => (
-        <View key={`${item}-${index}`} style={styles.bullet}>
-          <Text style={[styles.bodyText, styles.bulletMark]}>-</Text>
+        <View key={`${item}-${index}`} style={styles.bulletRow}>
+          <Text style={styles.bulletMark}>-</Text>
           <Text style={[styles.bodyText, styles.descriptionCell]}>{item}</Text>
         </View>
       ))}
@@ -423,7 +525,7 @@ function paymentDescription(
     return description;
   }
 
-  return `${description} - ${relatedQuoteNumber}`;
+  return `${description} _ ${relatedQuoteNumber}`;
 }
 
 function formatDate(value: string) {
@@ -436,4 +538,18 @@ function formatDate(value: string) {
     month: "2-digit",
     year: "numeric",
   }).format(date);
+}
+
+function formatWholeDollars(value: number) {
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(2);
+}
+
+function getLogoDataUri() {
+  if (cachedLogo) return cachedLogo;
+
+  const logoPath = join(process.cwd(), "public", "logo.png");
+  const logo = readFileSync(logoPath).toString("base64");
+  cachedLogo = `data:image/png;base64,${logo}`;
+  return cachedLogo;
 }

@@ -126,25 +126,39 @@ export function defaultWorkProcess() {
       step: "1",
       process: "Prepare & Protect",
       description:
-        "Protect windows, doors, floors and surrounding surfaces. Clean and prepare nominated areas before painting.",
-      estimatedDays: "",
+        "Protect windows, doors, floors and surrounding surfaces. Clean and prepare all nominated areas before painting.",
+      estimatedDays: "8",
     },
     {
       step: "2",
-      process: "Surface Preparation",
+      process: "Mould Treatment & Preparation",
       description:
-        "Treat affected areas, remove loose material, sand where required and prepare surfaces for coating.",
+        "Treat and clean visible mould-affected areas. Remove loose/flaking material and prepare surfaces as required.",
       estimatedDays: "",
     },
     {
       step: "3",
-      process: "Prime & Coat",
+      process: "Eves - Prime",
       description:
-        "Apply suitable primer or undercoat where required, followed by premium finish coats.",
+        "Apply a full coat of suitable anti-mould primer/undercoat to the nominated eaves and finish with two top coats of external premium paint.",
       estimatedDays: "",
     },
     {
-      step: "4",
+      step: "5",
+      process: "Brickwork - Spot Prime",
+      description:
+        "Spot-prime prepared areas of brickwork where required, including areas previously affected by mould or showing signs of surface deterioration.",
+      estimatedDays: "",
+    },
+    {
+      step: "6",
+      process: "Brickwork - Top Coats",
+      description:
+        "Apply 2 coats of premium exterior paint to the nominated brick surfaces for an even and weather-resistant finish.",
+      estimatedDays: "",
+    },
+    {
+      step: "7",
       process: "Final Inspection & Clean Up",
       description:
         "Complete final touch-ups, remove masking/protection and leave the work area clean and tidy.",
