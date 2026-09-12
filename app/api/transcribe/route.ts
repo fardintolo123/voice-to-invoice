@@ -2,6 +2,7 @@ import { createClient } from "@deepgram/sdk";
 import { saveTranscriptDraft } from "@/lib/db";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -24,10 +25,32 @@ export async function POST(request: Request) {
     const transcript = result?.results?.channels?.[0]?.alternatives?.[0]?.transcript?.trim() ?? "";
     if (!transcript) return Response.json({ error: "Deepgram did not return transcript text." }, { status: 422 });
 
-    const draft = await saveTranscriptDraft({ transcript, audioMimeType: audio.type || "application/octet-stream", audioBytes: audio.size });
-    return Response.json({ transcript, draftId: draft.id, quoteNumber: draft.quoteNumber });
+    const draft = await trySaveTranscriptDraft({
+      transcript,
+      audioMimeType: audio.type || "application/octet-stream",
+      audioBytes: audio.size,
+    });
+
+    return Response.json({
+      transcript,
+      draftId: draft?.id,
+      quoteNumber: draft?.quoteNumber,
+    });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? formatDeepgramError(error.message) : "Transcription failed." }, { status: 500 });
+  }
+}
+
+async function trySaveTranscriptDraft(input: {
+  transcript: string;
+  audioMimeType: string;
+  audioBytes: number;
+}) {
+  try {
+    return await saveTranscriptDraft(input);
+  } catch (error) {
+    console.error("Transcript draft save failed", error);
+    return null;
   }
 }
 

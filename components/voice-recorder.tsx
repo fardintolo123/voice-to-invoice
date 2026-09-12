@@ -161,15 +161,12 @@ export function VoiceRecorder({ onTranscript }: VoiceRecorderProps) {
         method: "POST",
         body: formData,
       });
-      const payload = (await response.json()) as {
-        transcript?: string;
-        draftId?: string;
-        quoteNumber?: string;
-        error?: string;
-      };
+      const payload = await readTranscribeResponse(response);
 
       if (!response.ok || !payload.transcript) {
-        throw new Error(payload.error ?? "Transcription failed.");
+        throw new Error(
+          payload.error ?? `Transcription failed with status ${response.status}.`,
+        );
       }
 
       onTranscript(payload.transcript, payload.draftId, payload.quoteNumber);
@@ -274,6 +271,26 @@ function getHydratedSnapshot() {
 
 function getServerSnapshot() {
   return false;
+}
+
+async function readTranscribeResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as {
+      transcript?: string;
+      draftId?: string;
+      quoteNumber?: string;
+      error?: string;
+    };
+  }
+
+  const text = await response.text();
+  return {
+    error: text.trim()
+      ? `Transcription failed with status ${response.status}: ${text.slice(0, 180)}`
+      : `Transcription failed with status ${response.status}.`,
+  };
 }
 
 function getSupportedMimeType() {
