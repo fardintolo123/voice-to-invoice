@@ -25,6 +25,10 @@ export async function POST(request: Request) {
 }
 
 async function tryMarkPdfGenerated(quoteNumber: string) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return;
+  }
+
   try {
     await markPdfGenerated(quoteNumber);
   } catch (error) {

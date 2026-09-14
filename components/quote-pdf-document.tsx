@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   header: {
-    minHeight: 88,
+    minHeight: 82,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -82,11 +82,11 @@ const styles = StyleSheet.create({
   },
   redBar: {
     height: 20,
-    marginBottom: 20,
+    marginBottom: 18,
     backgroundColor: red,
   },
   section: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 11,
@@ -100,9 +100,9 @@ const styles = StyleSheet.create({
     lineHeight: 1.16,
   },
   bodyBlock: {
-    fontSize: 12,
+    fontSize: 11.4,
     lineHeight: 1.16,
-    marginTop: 15,
+    marginTop: 13,
   },
   bold: {
     fontWeight: 700,
@@ -115,13 +115,22 @@ const styles = StyleSheet.create({
   column: {
     flex: 1,
   },
+  bottomColumns: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 34,
+  },
+  bottomColumn: {
+    width: "30%",
+  },
   preparedPanel: {
     width: 306,
     padding: 8,
     backgroundColor: "#efefef",
   },
   jobSection: {
-    flex: 1,
+    width: 370,
+    paddingLeft: 8,
   },
   jobTitle: {
     fontSize: 12,
@@ -129,16 +138,16 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   moneyBlock: {
-    alignSelf: "flex-start",
-    width: 282,
-    marginTop: 22,
-    marginLeft: 18,
+    position: "absolute",
+    top: 292,
+    right: 26,
+    width: 178,
     borderWidth: 1,
     borderColor: "#111111",
   },
   moneyTitle: {
-    paddingVertical: 7,
-    fontSize: 10,
+    paddingVertical: 6,
+    fontSize: 8.8,
     fontWeight: 700,
     textAlign: "center",
     textTransform: "uppercase",
@@ -146,13 +155,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f1d26",
   },
   moneyValue: {
-    paddingTop: 18,
-    fontSize: 12,
+    paddingTop: 14,
+    fontSize: 10,
     textAlign: "center",
   },
   taxText: {
-    paddingBottom: 17,
-    fontSize: 10,
+    paddingBottom: 13,
+    fontSize: 9,
     textAlign: "center",
     marginTop: 3,
   },
@@ -209,7 +218,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   photoGrid: {
-    minHeight: 150,
+    minHeight: 52,
     flexDirection: "row",
     gap: 0,
     paddingHorizontal: 24,
@@ -225,7 +234,7 @@ const styles = StyleSheet.create({
   },
   photoPlaceholder: {
     width: "33.33%",
-    height: 142,
+    height: 42,
     borderWidth: 1,
     borderColor: "#d7d7d7",
   },
@@ -241,7 +250,11 @@ const styles = StyleSheet.create({
   },
   bulletMark: {
     width: 6,
-    fontSize: 7,
+    fontSize: 6.6,
+  },
+  listText: {
+    fontSize: 7.2,
+    lineHeight: 1.12,
   },
 });
 
@@ -310,18 +323,17 @@ export function QuotePdfDocument({ quote }: QuotePdfDocumentProps) {
           </View>
         </View>
 
-        <View style={[styles.section, styles.twoColumn, { paddingHorizontal: 8, alignItems: "flex-start" }]}>
-          <View style={styles.jobSection}>
-            <Text style={styles.sectionTitle}>Job Description</Text>
-            <Text style={styles.jobTitle}>{quote.jobTitle || "Painting Works"}</Text>
-            {quote.scope ? <Text style={styles.bodyBlock}>{quote.scope}</Text> : null}
-          </View>
-          <MoneyBlock
-            documentType={quote.documentType}
-            taxLabel={quote.taxLabel}
-            total={totals.grandTotal}
-          />
+        <View style={[styles.section, styles.jobSection]}>
+          <Text style={styles.sectionTitle}>Job Description</Text>
+          <Text style={styles.jobTitle}>{quote.jobTitle || "Painting Works"}</Text>
+          {quote.scope ? <Text style={styles.bodyBlock}>{quote.scope}</Text> : null}
         </View>
+
+        <MoneyBlock
+          documentType={quote.documentType}
+          taxLabel={quote.taxLabel}
+          total={totals.grandTotal}
+        />
 
         {isQuote ? (
           <WorkProcess quote={quote} />
@@ -336,12 +348,12 @@ export function QuotePdfDocument({ quote }: QuotePdfDocumentProps) {
 
         {!isQuote ? <PaymentDetails quote={quote} /> : null}
 
-        <View style={[styles.section, styles.twoColumn, { paddingHorizontal: 34 }]}>
-          <ListSection items={quote.inclusions} title="Inclusions" />
+        <View style={[styles.section, styles.bottomColumns]}>
+          <ListSection column items={quote.inclusions} title="Inclusions" />
           {quote.exclusions.length > 0 ? (
-            <ListSection items={quote.exclusions} title="Exclusions" />
+            <ListSection column items={quote.exclusions} title="Exclusions" />
           ) : null}
-          <ListSection items={quote.terms} title="Terms & Conditions" />
+          <ListSection column items={quote.terms} title="Terms & Conditions" />
         </View>
 
         {!isQuote ? (
@@ -489,16 +501,24 @@ function PaymentDetails({ quote }: { quote: Quote }) {
   );
 }
 
-function ListSection({ items, title }: { items: string[]; title: string }) {
+function ListSection({
+  column = false,
+  items,
+  title,
+}: {
+  column?: boolean;
+  items: string[];
+  title: string;
+}) {
   if (items.length === 0) return null;
 
   return (
-    <View style={[styles.section, styles.column]}>
+    <View style={column ? styles.bottomColumn : [styles.section, styles.column]}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {items.map((item, index) => (
         <View key={`${item}-${index}`} style={styles.bulletRow}>
           <Text style={styles.bulletMark}>-</Text>
-          <Text style={[styles.bodyText, styles.descriptionCell]}>{item}</Text>
+          <Text style={[styles.bodyText, styles.listText, styles.descriptionCell]}>{item}</Text>
         </View>
       ))}
     </View>
