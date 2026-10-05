@@ -3,7 +3,7 @@ import { PDFDocument } from "pdf-lib";
 import { createElement } from "react";
 import { QuotePdfDocument } from "@/components/quote-pdf-document";
 import { getBusinessProfile } from "@/lib/business-profile";
-import { markPdfGenerated } from "@/lib/db";
+import { isSupabaseConfigured, markPdfGenerated } from "@/lib/db";
 import { pdfQuoteRequestSchema } from "@/lib/quote-schema";
 
 export const runtime = "nodejs";
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 }
 
 async function tryMarkPdfGenerated(quoteNumber: string) {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!isSupabaseConfigured()) {
     return;
   }
 

@@ -61,12 +61,23 @@ export async function getDraft(id: string): Promise<QuoteDraft | null> {
 
 function getSupabase() {
   if (!supabase) {
-    const url = process.env.SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !serviceRoleKey) throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+    const { url, serviceRoleKey } = getSupabaseConfig();
+    if (!url || !serviceRoleKey) throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or QUOTE_SUPABASE_URL and QUOTE_SERVICE_ROLE_KEY.");
     supabase = createClient(url, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
   }
   return supabase;
+}
+
+export function isSupabaseConfigured() {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+  return Boolean(url && serviceRoleKey);
+}
+
+function getSupabaseConfig() {
+  return {
+    url: process.env.SUPABASE_URL ?? process.env.QUOTE_SUPABASE_URL,
+    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.QUOTE_SERVICE_ROLE_KEY,
+  };
 }
 
 async function nextQuoteNumber(client: SupabaseClient) {
