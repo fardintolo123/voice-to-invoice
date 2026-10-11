@@ -72,10 +72,7 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
   ) {
     updateQuote(
       key,
-      value
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean),
+      value.split("\n"),
     );
   }
 
@@ -258,16 +255,18 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
         <div className="grid gap-3">
           {quote.lineItems.map((item, index) => (
             <div
-              className="grid gap-3 rounded-md border border-[var(--border)] bg-[#fbfbf7] p-3 md:grid-cols-[1fr_6rem_8rem_2.5rem]"
-              key={`${item.description}-${index}`}
+              className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem] gap-3 rounded-md border border-[var(--border)] bg-[#fbfbf7] p-3 md:grid-cols-[1fr_6rem_8rem_2.5rem]"
+              key={index}
             >
-              <Field label="Description" id={`description-${index}`}>
-                <Input
-                  id={`description-${index}`}
-                  value={item.description}
-                  onChange={(event) => updateLineItem(index, "description", event.target.value)}
-                />
-              </Field>
+              <div className="col-span-3 md:col-span-1">
+                <Field label="Description" id={`description-${index}`}>
+                  <Input
+                    id={`description-${index}`}
+                    value={item.description}
+                    onChange={(event) => updateLineItem(index, "description", event.target.value)}
+                  />
+                </Field>
+              </div>
               <Field label="Qty" id={`quantity-${index}`}>
                 <Input
                   id={`quantity-${index}`}
@@ -288,7 +287,7 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
                   onChange={(event) => updateLineItem(index, "unitPrice", event.target.value)}
                 />
               </Field>
-              <div className="flex items-end">
+                <div className="flex items-end">
                 <Button
                   aria-label="Remove line item"
                   disabled={quote.lineItems.length === 1}
@@ -304,16 +303,17 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
           ))}
         </div>
 
-        <div className="ml-auto grid w-full gap-2 rounded-md bg-[var(--muted)] p-4 text-sm sm:w-80">
+        <div className="grid gap-3 border-t border-[var(--border)] pt-4 text-sm sm:grid-cols-3 sm:gap-6">
           <TotalRow label="Subtotal" value={formatCurrency(totals.subtotal, quote.currency, quote.locale)} />
           <TotalRow
             label={quote.taxInclusive ? `${quote.taxLabel} inclusive` : `${quote.taxLabel} ${quote.vatRate}%`}
             value={quote.taxInclusive ? "Included" : formatCurrency(totals.vatAmount, quote.currency, quote.locale)}
           />
-          <div className="flex justify-between border-t border-[var(--border)] pt-2 text-base font-semibold">
-            <span>{isQuote ? "Quote total" : "Balance due"}</span>
-            <span>{formatCurrency(totals.grandTotal, quote.currency, quote.locale)}</span>
-          </div>
+          <TotalRow
+            emphasized
+            label={isQuote ? "Quote total" : "Balance due"}
+            value={formatCurrency(totals.grandTotal, quote.currency, quote.locale)}
+          />
         </div>
       </Section>
 
@@ -330,8 +330,8 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
           <div className="grid gap-3">
             {quote.workProcess.map((row, index) => (
               <div
-                className="grid gap-3 rounded-md border border-[var(--border)] bg-[#fbfbf7] p-3 md:grid-cols-[4rem_12rem_1fr_6rem_2.5rem]"
-                key={`${row.step}-${index}`}
+                className="grid grid-cols-[4rem_minmax(0,1fr)] items-start gap-3 rounded-md border border-[var(--border)] bg-[#fbfbf7] p-3 sm:grid-cols-[4rem_minmax(0,1fr)_6rem_2.5rem]"
+                key={index}
               >
                 <Field label="Step" id={`step-${index}`}>
                   <Input
@@ -347,13 +347,6 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
                     onChange={(event) => updateWorkProcess(index, "process", event.target.value)}
                   />
                 </Field>
-                <Field label="Description" id={`process-description-${index}`}>
-                  <Textarea
-                    id={`process-description-${index}`}
-                    value={row.description}
-                    onChange={(event) => updateWorkProcess(index, "description", event.target.value)}
-                  />
-                </Field>
                 <Field label="Days" id={`days-${index}`}>
                   <Input
                     id={`days-${index}`}
@@ -361,7 +354,7 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
                     onChange={(event) => updateWorkProcess(index, "estimatedDays", event.target.value)}
                   />
                 </Field>
-                <div className="flex items-end">
+                <div className="flex h-full items-end justify-self-end sm:items-start sm:justify-self-auto sm:pt-6">
                   <Button
                     aria-label="Remove work process step"
                     onClick={() => removeWorkProcess(index)}
@@ -372,6 +365,17 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+                <div className="col-span-2 sm:col-span-4">
+                  <Field label="Description" id={`process-description-${index}`}>
+                    <Textarea
+                      autoResize
+                      className="min-h-16"
+                      id={`process-description-${index}`}
+                      value={row.description}
+                      onChange={(event) => updateWorkProcess(index, "description", event.target.value)}
+                    />
+                  </Field>
+                </div>
               </div>
             ))}
           </div>
@@ -381,14 +385,18 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
       <Section title="Notes and Terms">
         <Field label="Document note" id="quote-notes">
           <Textarea
+            autoResize
+            className="min-h-16"
             id="quote-notes"
             value={quote.notes}
             onChange={(event) => updateQuote("notes", event.target.value)}
           />
         </Field>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid items-start gap-4 md:grid-cols-2">
           <Field label="Inclusions" id="inclusions">
             <Textarea
+              autoResize
+              className="min-h-36"
               id="inclusions"
               value={quote.inclusions.join("\n")}
               onChange={(event) => updateTextList("inclusions", event.target.value)}
@@ -396,18 +404,24 @@ export function QuoteForm({ quote, onChange }: QuoteFormProps) {
           </Field>
           <Field label="Exclusions" id="exclusions">
             <Textarea
+              autoResize
+              className="min-h-36"
               id="exclusions"
               value={quote.exclusions.join("\n")}
               onChange={(event) => updateTextList("exclusions", event.target.value)}
             />
           </Field>
-          <Field label="Terms" id="terms">
-            <Textarea
-              id="terms"
-              value={quote.terms.join("\n")}
-              onChange={(event) => updateTextList("terms", event.target.value)}
-            />
-          </Field>
+          <div className="md:col-span-2 md:max-w-[80ch]">
+            <Field label="Terms" id="terms">
+              <Textarea
+                autoResize
+                className="min-h-36"
+                id="terms"
+                value={quote.terms.join("\n")}
+                onChange={(event) => updateTextList("terms", event.target.value)}
+              />
+            </Field>
+          </div>
         </div>
       </Section>
 
@@ -565,11 +579,11 @@ function Field({
   );
 }
 
-function TotalRow({ label, value }: { label: string; value: string }) {
+function TotalRow({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
   return (
-    <div className="flex justify-between">
-      <span className="text-[var(--muted-foreground)]">{label}</span>
-      <span className="font-medium">{value}</span>
+    <div className="flex items-baseline justify-between gap-3 sm:block">
+      <span className={emphasized ? "font-semibold" : "text-[var(--muted-foreground)]"}>{label}</span>
+      <span className={emphasized ? "font-semibold sm:mt-1 sm:block sm:text-lg" : "font-medium sm:mt-1 sm:block"}>{value}</span>
     </div>
   );
 }

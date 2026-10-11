@@ -510,12 +510,13 @@ function ListSection({
   items: string[];
   title: string;
 }) {
-  if (items.length === 0) return null;
+  const visibleItems = items.map((item) => item.trim()).filter(Boolean);
+  if (visibleItems.length === 0) return null;
 
   return (
     <View style={column ? styles.bottomColumn : [styles.section, styles.column]}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {items.map((item, index) => (
+      {visibleItems.map((item, index) => (
         <View key={`${item}-${index}`} style={styles.bulletRow}>
           <Text style={styles.bulletMark}>-</Text>
           <Text style={[styles.bodyText, styles.listText, styles.descriptionCell]}>{item}</Text>
